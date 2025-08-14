@@ -1,11 +1,4 @@
 <?php
-/*
-
-- Open Server Panel 6.3.5
-- PHP 8.4
-- MySQL 8.4
-
-*/
 
 // AJAX обработка для комментариев
 if (isset($_GET['get_comments']) && isset($_GET['post_id'])) {
@@ -372,5 +365,6 @@ $conn->close();
         console.log('Загружено <?php echo $added_posts; ?> записей.\nЗагружено <?php echo $added_comments; ?> комментариев.');
     </script>
 </body>
+
 
 </html>
