@@ -1,36 +1,24 @@
 <?php
-
-// AJAX обработка для комментариев
-if (isset($_GET['get_comments']) && isset($_GET['post_id'])) {
-    $host = 'MySQL-8.4';
-    $user = 'root';
-    $password = '';
-    $dbname = 'test';
-    $conn = new mysqli($host, $user, $password, $dbname);
-    header('Content-Type: application/json');
-    $post_id = (int) $_GET['post_id'];
-    $comments = [];
-    // Получаем комментарии только для данного поста
-    $result = $conn->query("SELECT name, email, body FROM comments WHERE postId = $post_id");
-    while ($row = $result->fetch_assoc()) {
-        $comments[] = $row;
-    }
-    echo json_encode($comments);
-    $conn->close();
-    exit;
-}
-
-// Подключение к базе данных
 $host = 'MySQL-8.4';
 $user = 'root';
 $password = '';
 $dbname = 'test';
 
+// Подключение к базе данных
 $conn = new mysqli($host, $user, $password, $dbname);
-
-
 if ($conn->connect_error) {
     die('Ошибка подключения: ' . $conn->connect_error);
+}
+
+// Получение комментариев через AJAX
+if (isset($_GET['get_comments'], $_GET['post_id'])) {
+    header('Content-Type: application/json');
+    $post_id = (int) $_GET['post_id'];
+    $result = $conn->query("SELECT name, email, body FROM comments WHERE postId = $post_id");
+    $comments = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    echo json_encode($comments);
+    $conn->close();
+    exit;
 }
 
 // Функция для загрузки и декодирования JSON
@@ -78,7 +66,7 @@ foreach ($comments as $comment) {
 // Поиск по комментариям
 $search_key = isset($_GET['key']) ? trim($conn->real_escape_string($_GET['key'])) : '';
 $posts_to_show = [];
-$search_comments_count = []; // Количество найденных комментариев по ключу для каждого поста
+$search_comments_count = [];
 
 if ($search_key && mb_strlen($search_key) >= 3) {
     $result = $conn->query("SELECT postId, COUNT(*) as cnt FROM comments WHERE body LIKE '%$search_key%' GROUP BY postId");
@@ -298,7 +286,7 @@ $conn->close();
             ?>
             <div class="posts-item" data-post-id="<?php echo $post['id']; ?>">
                 <h2><?php echo htmlspecialchars($post['title']); ?></h2>
-                <p><?php echo htmlspecialchars($post['body']); ?></p>
+                <p><?php echo nl2br(htmlspecialchars($post['body'])); ?></p>
                 <button type="button" class="show-comments-btn">
                     Показать комментарии (<?php echo $cnt; ?>)
                 </button>
@@ -334,14 +322,15 @@ $conn->close();
                             if (!searchWord) return text;
                             return text.replace(new RegExp(searchWord, 'gi'), match => `<span style="background:yellow;color:#222;">${match}</span>`);
                         };
+                        const formatText = (text) => highlight(text).replace(/\r?\n/g, '<br>');
                         if (data.length === 0) {
                             html += '<p>Нет комментариев</p>';
                         } else {
                             data.forEach(c => {
                                 html += `<div class="comm-item" style="margin-bottom:10px;">
-                <b>${highlight(c.name)}</b> <em>${c.email}</em>
-                <p>${highlight(c.body)}</p>
-            </div>`;
+                                            <b>${formatText(c.name)}</b> <em>${c.email}</em>
+                                            <p>${formatText(c.body)}</p>
+                                        </div>`;
                             });
                         }
                         document.querySelector('.modal-content').innerHTML = html;
@@ -365,6 +354,5 @@ $conn->close();
         console.log('Загружено <?php echo $added_posts; ?> записей.\nЗагружено <?php echo $added_comments; ?> комментариев.');
     </script>
 </body>
-
 
 </html>
